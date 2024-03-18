@@ -1,0 +1,15 @@
+version: '2'
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - 3679:6379
+  bot1:
+    image: ping-bot:3.10
+    environment:
+      - TOKEN_BOT=
+      - REDIS_HOST=
+      - REDIS_PORT=
+    restart: always
+    depends_on:
+      - redis
