@@ -4,6 +4,9 @@ services:
     image: redis:latest
     ports:
       - 3679:6379
+    networks:
+      - mynetwork
+
   bot1:
     image: ping-bot:3.10
     environment:
@@ -11,5 +14,9 @@ services:
       - REDIS_HOST=
       - REDIS_PORT=
     restart: always
-    depends_on:
-      - redis
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
