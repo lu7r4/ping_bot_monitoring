@@ -431,28 +431,41 @@ async def db_callback_test(callback: types.CallbackQuery):
     await bot.send_message(callback.message.chat.id, f"You clicked on IP: {ip}")
 """
 async def ping_urls_periodically(state, chat_id):
+
+    unavailable_ips = []  # Список для хранения недоступных IP-адресов
+    available_ips = []  # Список для хранения доступных IP-адресов
+
     while True:
         data = await state.get_data()
         username = data.get("username")  # Получаем username из состояния
-        redis_connection = redis.Redis(host=redis_host, port=redis_port) 
+        redis_connection = redis.Redis(host=redis_host, port=redis_port)
         all_keys = redis_connection.keys()
-
-        messages = []  # Список для хранения сообщений
 
         for key in all_keys:
             value = redis_connection.get(key)
             if value is not None:
-                response_time = ping3.ping(value.decode())
-                if response_time is None:
-                    message = f"IP {value.decode()} не доступен"
-                    messages.append(message)  # Добавляем сообщение в список
+                ip = value.decode()
+                response_time = ping3.ping(ip)
 
-        if messages:
-            response_message = "\n".join(messages)  # Объединяем все сообщения из списка через перенос строки
-            await bot.send_message(chat_id=chat_id, text=response_message)
+                if response_time is None:
+                    if ip not in unavailable_ips:
+                        if len(unavailable_ips) < 3:
+                            message = f"IP {ip} не доступен"
+                            await bot.send_message(chat_id=chat_id, text=message)
+                        unavailable_ips.append(ip)
+                else:
+                    if ip in unavailable_ips:
+                        unavailable_ips.remove(ip)
+                        available_ips.append(ip)
+                        message = f"IP {ip} стал доступен"
+                        await bot.send_message(chat_id=chat_id, text=message)
 
         await asyncio.sleep(5)  # Пауза 5 секунд перед следующим пингом
 
+        if len(unavailable_ips) == 3:
+            unavailable_ips.clear()
+        if len(available_ips) == 3:
+            available_ips.clear()
 
 def register_handlers_fsm(dp: Dispatcher):
     dp.register_message_handler(cmd_start, Command("start"), state="*")
