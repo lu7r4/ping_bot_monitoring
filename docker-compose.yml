@@ -1,19 +1,23 @@
 version: '2'
 services:
   redis:
-    image: redis:latest
+    image: redis
     ports:
-      - 3679:6379
+      - 3679:6379 # default port
     networks:
       - mynetwork
 
   bot1:
-    image: ping-bot:3.10
+    image: # your image
     environment:
-      - TOKEN_BOT=
-      - REDIS_HOST=
-      - REDIS_PORT=
+      - TOKEN_BOT= # your token
+      - REDIS_HOST=host.docker. # name your services /redis 
+      - REDIS_PORT= # default port 6379
     restart: always
+    depends_on:
+      - redis
+    links:
+      - redis:host.docker.redis # ( name your services:host.docker.name your services )
     networks:
       - mynetwork
 
