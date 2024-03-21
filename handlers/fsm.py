@@ -334,7 +334,7 @@ async def remove_url(url, message):
         redis_connection.delete(key)
         await message.answer(f"URL {url} has been successfully removed from the DB.", reply_markup=keyboard)
     else:
-        await message.answer(f"URL {url} has been successfully removed from the DB.", reply_markup=keyboard)
+        await message.answer(f"URL {url} is not found the DB.", reply_markup=keyboard)
 
 # btn View your DB
 @dp.message_handler(lambda message: message.text == "View your DB", state='*')
