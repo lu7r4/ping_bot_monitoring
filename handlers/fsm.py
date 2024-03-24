@@ -380,6 +380,7 @@ async def ping_urls_periodically(state, chat_id):
                         if len(unavailable_ips) < 3:
                             message = f"IP {ip} is not available."
                             await bot.send_message(chat_id=chat_id, text=message)
+                            break  # остановить цикл после отправки сообщения
                         unavailable_ips.append(ip)
                 else:
                     if ip in unavailable_ips:
@@ -387,6 +388,7 @@ async def ping_urls_periodically(state, chat_id):
                         available_ips.append(ip)
                         message = f"IP {ip} has become available."
                         await bot.send_message(chat_id=chat_id, text=message)
+                        break  # остановить цикл после отправки сообщения
 
         await asyncio.sleep(5)  # Пауза 5 секунд перед следующим пингом
 
