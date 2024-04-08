@@ -61,8 +61,8 @@ async def bnt_start(message: types.Message, state: FSMContext):
     
     await message.answer( f"*{message['from'].first_name}*!\nPlease press the button to Test the network or Monitoring IPs.", reply_markup=keyboard)
     
-    chat_id = message.chat.id
-    asyncio.create_task(ping_urls_periodically(state, chat_id))
+#    chat_id = message.chat.id
+#    asyncio.create_task(ping_urls_periodically(state, chat_id))
 
     await state.finish()
 
@@ -185,6 +185,7 @@ async def db_list_handler(message: types.Message, state: FSMContext):
             db_list.append(value.decode())
 
     if db_list:
+        db_list = sorted(db_list)
         response = "Addresses in the DB:\n"
         for ip in db_list:
             response += f"- {ip}\n"
@@ -351,6 +352,7 @@ async def db_list_handler(message: types.Message, state: FSMContext):
             db_list.append(value.decode())
 
     if db_list:
+        db_list = sorted(db_list)
         response = "Addresses in the DB:\n"
         for ip in db_list:
             response += f"- {ip}\n"
@@ -376,12 +378,72 @@ async def ping_urls_periodically(state, chat_id):
                 response_time = ping3.ping(ip)
 
                 if response_time is None:
-                    if ip not in unavailable_ips:
-                        if ip not in available_ips:
-                            if len(unavailable_ips) < 3:
+                    failed_ping_count = 0
+
+                    for _ in range(5):
+                        response_time = ping3.ping(ip)  # Выполняется пинг
+                        print(f"Ping {ip}: {response_time}ms")  # Вывод пинга в консоль
+
+                        if response_time is None:
+                            failed_ping_count += 1
+
+                        if failed_ping_count == 5:
+                            if ip not in unavailable_ips:
+                                print(f"{ip} is unavailable")  # Вывод сообщения об недоступности в консоль
+                                unavailable_ips.append(ip)
+
                                 message = f"IP {ip} is not available."
                                 await bot.send_message(chat_id=chat_id, text=message)
-                            unavailable_ips.append(ip)
+                                break  # Прерывание цикла после 5 неудачных пингов
+
+                elif response_time and ip in unavailable_ips:
+
+                                # Проверка доступности IP-адреса 5 раз каждую секунду
+                    ok_ping_count = 0
+
+                    for _ in range(5):
+                        response_time = ping3.ping(ip)  # Выполняется пинг
+                        print(f"Ping {ip}: {response_time}ms")  # Вывод пинга в консоль
+
+                        if response_time:
+                            ok_ping_count += 1
+
+                    if ok_ping_count == 5:
+                        unavailable_ips.remove(ip)  # Удаление IP-адреса из списка недоступных
+
+#                        available_ips.append(ip)
+
+                        message = f"IP {ip} is now available again."
+                        await bot.send_message(chat_id=chat_id, text=message)
+                        print(f"{ip} is already available") # Вывод сообщения в консоль, если IP-адрес уже доступен
+
+        print(unavailable_ips, available_ips)
+
+        await asyncio.sleep(5)  # Пауза 5 секунд перед следующим пингом
+
+
+
+"""
+                            if ip in unavailable_ips:
+                                ok_ping_count = 0
+                            
+                                for _ in range(5):
+                                    response_time = ping3.ping(ip)  # Выполняется пинг
+                                    print(f"Ping {ip}: {response_time}ms")  # Вывод пинга в консоль
+
+                                    if response_time:
+                                        ok_ping_count += 1
+
+                                    if ok_ping_count >= 5:
+                                        unavailable_ips.append(ip)
+                                        print(f"{ip} is available")  # Вывод сообщения об недоступности в консоль
+                                break
+                            message = f"IP {ip} has become available."
+                            unavailable_ips.remove(ip)
+"""                            
+
+
+"""
                 else:
                     if ip in unavailable_ips:
                         unavailable_ips.remove(ip)
@@ -389,14 +451,8 @@ async def ping_urls_periodically(state, chat_id):
                             available_ips.append(ip)
                             message = f"IP {ip} has become available."
                             await bot.send_message(chat_id=chat_id, text=message)
+"""
 
-
-        await asyncio.sleep(5)  # Пауза 5 секунд перед следующим пингом
-
-        if len(unavailable_ips) == 3:
-            unavailable_ips.clear()
-        if len(available_ips) == 3:
-            available_ips.clear()
 
 def register_handlers_fsm(dp: Dispatcher):
     dp.register_message_handler(cmd_start, Command("start"), state="*")
